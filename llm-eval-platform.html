@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Response Evaluation & Annotation Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ============================================================
+   LLM EVAL PLATFORM — Complete Stylesheet
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep:    #0d0d1a;
+  --bg-card:    rgba(255,255,255,0.04);
+  --bg-input:   rgba(255,255,255,0.05);
+  --border:     rgba(255,255,255,0.08);
+  --border-em:  rgba(255,255,255,0.15);
+  --acc:        #e94560;
+  --acc2:       #533483;
+  --text:       #e8e8f0;
+  --muted:      #9999b5;
+  --green:      #2ecc71;
+  --yellow:     #f39c12;
+  --red:        #e74c3c;
+  --blue:       #3498db;
+  --purple:     #9b59b6;
+}
+
+body {
+  font-family: 'Courier New', Courier, monospace;
+  background: var(--bg-deep);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2rem; padding-bottom: 1.5rem;
+  border-bottom: 0.5px solid var(--border);
+}
+.logo { display: flex; flex-direction: column; gap: 4px; }
+.logo-eyebrow { font-size: 10px; color: var(--acc); letter-spacing: 0.2em; }
+.logo-title   { font-size: 22px; font-weight: 500; }
+.logo-sub     { font-size: 12px; color: var(--muted); }
+
+/* ── Navigation ── */
+nav {
+  display: flex; gap: 4px; margin-bottom: 2rem;
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 4px;
+}
+nav button {
+  flex: 1; padding: 10px 16px; border: none; border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 500;
+  transition: all 0.2s; letter-spacing: 0.08em;
+}
+nav button.active { background: var(--acc); color: #fff; }
+nav button:hover:not(.active) { background: rgba(255,255,255,0.06); color: var(--text); }
+
+/* ── Tabs ── */
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.card-title {
+  font-size: 11px; color: var(--muted);
+  letter-spacing: 0.1em; margin-bottom: 1rem;
+}
+
+/* ── Form Elements ── */
+label {
+  font-size: 11px; color: var(--muted);
+  letter-spacing: 0.08em; display: block; margin-bottom: 6px;
+}
+textarea, input[type="text"], select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border 0.2s;
+  resize: vertical;
+}
+textarea:focus, input[type="text"]:focus, select:focus {
+  border-color: var(--acc);
+}
+select option { background: #1a1a2e; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border: 0.5px solid; border-radius: 6px;
+  cursor: pointer; font-family: inherit; font-size: 12px;
+  font-weight: 500; transition: all 0.15s; letter-spacing: 0.06em;
+  text-decoration: none;
+}
+.btn-primary { background: var(--acc); border-color: var(--acc); color: #fff; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { background: var(--acc2); border-color: var(--acc2); color: #fff; }
+.btn-secondary:hover { opacity: 0.85; }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+.btn-ghost:hover { border-color: var(--acc); color: var(--acc); }
+.btn-danger { background: transparent; border-color: rgba(231,76,60,0.4); color: var(--red); }
+.btn-danger:hover { background: rgba(231,76,60,0.1); }
+.btn-sm { padding: 5px 12px; font-size: 11px; }
+
+/* ── Grids ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+/* ── Response Cards ── */
+.response-card {
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  background: rgba(255,255,255,0.02);
+  position: relative;
+  transition: border 0.25s, box-shadow 0.25s;
+  margin-bottom: 1rem;
+}
+.response-card.selected { border-color: var(--acc); }
+.response-card.best { border-color: var(--green); }
+
+.rc-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 1rem;
+}
+.rc-num {
+  font-size: 10px; color: var(--muted);
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px; padding: 2px 6px;
+  letter-spacing: 0.08em;
+}
+
+/* ── Star Rating ── */
+.stars { display: flex; gap: 4px; margin: 10px 0; }
+.star {
+  font-size: 22px; cursor: pointer; color: rgba(255,255,255,0.15);
+  transition: color 0.15s, transform 0.1s;
+  line-height: 1;
+}
+.star.lit { color: var(--yellow); }
+.star:hover { color: var(--yellow); transform: scale(1.15); }
+
+/* ── Annotation Tags ── */
+.tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.tag {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px;
+  cursor: pointer; border: 0.5px solid; transition: all 0.15s;
+  letter-spacing: 0.04em; font-family: inherit; user-select: none;
+}
+.tag.hallucination { border-color: rgba(231,76,60,0.4);  color: var(--red);    background: transparent; }
+.tag.irrelevant    { border-color: rgba(243,156,18,0.4); color: var(--yellow); background: transparent; }
+.tag.incoherent    { border-color: rgba(155,89,182,0.4); color: var(--purple); background: transparent; }
+.tag.biased        { border-color: rgba(230,126,34,0.4); color: #e67e22;       background: transparent; }
+.tag.accurate      { border-color: rgba(46,204,113,0.4); color: var(--green);  background: transparent; }
+.tag.concise       { border-color: rgba(52,152,219,0.4); color: var(--blue);   background: transparent; }
+
+.tag.hallucination.on { background: rgba(231,76,60,0.15); }
+.tag.irrelevant.on    { background: rgba(243,156,18,0.15); }
+.tag.incoherent.on    { background: rgba(155,89,182,0.15); }
+.tag.biased.on        { background: rgba(230,126,34,0.15); }
+.tag.accurate.on      { background: rgba(46,204,113,0.15); }
+.tag.concise.on       { background: rgba(52,152,219,0.15); }
+
+/* ── Metric Bars ── */
+.metric-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.metric-label { font-size: 11px; color: var(--muted); width: 90px; flex-shrink: 0; letter-spacing: 0.06em; }
+.metric-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.metric-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.metric-val { font-size: 12px; color: var(--text); width: 36px; text-align: right; }
+
+/* ── Score Badge ── */
+.score-badge {
+  position: absolute; top: 14px; right: 14px;
+  padding: 4px 10px; border-radius: 5px; font-size: 12px;
+  font-weight: 600; letter-spacing: 0.04em;
+}
+.score-high { background: rgba(46,204,113,0.15); color: var(--green); border: 0.5px solid rgba(46,204,113,0.3); }
+.score-mid  { background: rgba(243,156,18,0.15); color: var(--yellow); border: 0.5px solid rgba(243,156,18,0.3); }
+.score-low  { background: rgba(231,76,60,0.15); color: var(--red); border: 0.5px solid rgba(231,76,60,0.3); }
+
+/* ── AI Score Block ── */
+.ai-block {
+  background: rgba(83,52,131,0.1);
+  border: 0.5px solid rgba(83,52,131,0.3);
+  border-radius: 8px; padding: 1rem; margin-top: 1rem;
+}
+.ai-block-title { font-size: 10px; color: var(--purple); letter-spacing: 0.15em; margin-bottom: 10px; }
+.ai-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.ai-score-item { text-align: center; }
+.ai-score-num { font-size: 24px; font-weight: 600; }
+.ai-score-dim { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-top: 2px; }
+.ai-reasoning { font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 0.5px solid rgba(255,255,255,0.08); padding-top: 10px; }
+
+/* ── Stat Cards ── */
+.stat {
+  background: var(--bg-card); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 1.25rem; text-align: center;
+}
+.stat-val { font-size: 28px; font-weight: 600; color: var(--text); }
+.stat-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.1em; }
+
+/* ── History Items ── */
+.eval-item {
+  background: var(--bg-card); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 1.25rem;
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 1rem; margin-bottom: 10px;
+  transition: border 0.2s;
+}
+.eval-item:hover { border-color: var(--border-em); }
+.eval-prompt { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+.eval-text { font-size: 13px; color: var(--text); }
+.eval-meta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ── Misc ── */
+.divider { height: 0.5px; background: var(--border); margin: 1.25rem 0; }
+.note { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.pill {
+  padding: 3px 9px; border-radius: 12px; font-size: 10px;
+  border: 0.5px solid; letter-spacing: 0.03em;
+}
+.winner-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; background: rgba(233,69,96,0.12);
+  border: 0.5px solid rgba(233,69,96,0.3); border-radius: 4px;
+  font-size: 10px; color: var(--acc); margin-left: 8px;
+}
+.chart-wrap { position: relative; width: 100%; height: 220px; }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1.25rem; align-items: center; }
+
+/* Loading overlay */
+.loading-overlay {
+  display: none; position: absolute; inset: 0;
+  background: rgba(13,13,26,0.85); border-radius: 10px;
+  align-items: center; justify-content: center;
+  z-index: 10; font-size: 12px; color: var(--muted);
+  letter-spacing: 0.12em;
+}
+.loading-overlay.active { display: flex; }
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: var(--acc); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes pulse-border {
+  0%   { box-shadow: 0 0 0 0   rgba(46,204,113,0.5); }
+  100% { box-shadow: 0 0 0 14px rgba(46,204,113,0); }
+}
+.best-pulse { animation: pulse-border 0.8s ease-out; }
+
+/* API status banner */
+.api-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(83,52,131,0.12); border: 0.5px solid rgba(83,52,131,0.3);
+  border-radius: 8px; padding: 12px 16px; margin-bottom: 1.5rem;
+  font-size: 12px; color: var(--muted);
+}
+.api-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
+
+/* Leaderboard rows */
+.lb-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 0.5px solid var(--border);
+}
+.lb-rank { font-size: 12px; color: var(--muted); width: 24px; }
+.lb-model { font-size: 13px; flex: 1; }
+.lb-count { font-size: 11px; color: var(--muted); }
+.lb-score { font-size: 15px; font-weight: 600; }
+
+/* Empty state */
+.empty { text-align: center; padding: 3rem 1rem; }
+.empty-icon { font-size: 32px; margin-bottom: 1rem; color: var(--muted); }
+.empty p { font-size: 13px; color: var(--muted); }
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  nav button { font-size: 10px; padding: 8px 6px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-eyebrow">ANTHROPIC / EVAL PLATFORM v1.0</div>
+      <div class="logo-title">LLM Response Evaluator</div>
+      <div class="logo-sub">Rate · Annotate · Compare · Analyze</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div id="api-status" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
+        <span id="api-dot" style="width:8px;height:8px;border-radius:50%;background:var(--purple);display:inline-block"></span>
+        <span id="api-text">CLAUDE API READY</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted)" id="eval-count">0 evaluations saved</div>
+    </div>
+  </header>
+
+  <!-- NAV TABS -->
+  <nav>
+    <button class="active" onclick="switchTab('evaluate', this)">01 — EVALUATE</button>
+    <button onclick="switchTab('dashboard', this)">02 — DASHBOARD</button>
+    <button onclick="switchTab('history', this)">03 — HISTORY</button>
+    <button onclick="switchTab('api', this)">04 — API DOCS</button>
+  </nav>
+
+  <!-- ============================================================
+       TAB 1: EVALUATE
+       ============================================================ -->
+  <div id="tab-evaluate" class="tab active">
+
+    <!-- Prompt input -->
+    <div class="card">
+      <div class="card-title">PROMPT / QUESTION</div>
+      <textarea id="prompt-input" rows="3"
+        placeholder="Enter the prompt you sent to each LLM..."></textarea>
+      <div class="note" style="margin-top:8px">
+        This is the common prompt evaluated across all model responses below.
+      </div>
+    </div>
+
+    <!-- Response area -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <label style="margin:0;font-size:13px;color:var(--text)">Model Responses</label>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="addDemoData()">DEMO DATA</button>
+        <button class="btn btn-ghost btn-sm" onclick="addResponseUI()">+ ADD RESPONSE</button>
+      </div>
+    </div>
+
+    <div id="resp-container">
+      <div class="empty">
+        <div class="empty-icon">&#9670;</div>
+        <p>No responses yet.<br>Click <strong>+ ADD RESPONSE</strong> or load <strong>DEMO DATA</strong> to begin.</p>
+        <br>
+        <button class="btn btn-ghost" style="margin:auto" onclick="addDemoData()">LOAD DEMO DATA</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="runAIEval()">
+        <span>&#9670;</span> AI AUTO-SCORE ALL
+      </button>
+      <button class="btn btn-secondary" onclick="saveEvaluation()">SAVE EVALUATION</button>
+      <button class="btn btn-ghost" onclick="clearAll()">CLEAR ALL</button>
+    </div>
+    <p class="note" style="margin-top:10px">
+      Auto-score uses Claude to evaluate accuracy, relevance and coherence (1–10) for each response.
+      Human ratings and annotation tags are always preserved separately.
+    </p>
+
+  </div>
+
+  <!-- ============================================================
+       TAB 2: DASHBOARD
+       ============================================================ -->
+  <div id="tab-dashboard" class="tab">
+
+    <div class="grid-4" style="margin-bottom:1.5rem">
+      <div class="stat"><div class="stat-val" id="d-total">0</div><div class="stat-lbl">EVALUATIONS</div></div>
+      <div class="stat"><div class="stat-val" id="d-avg">—</div><div class="stat-lbl">AVG HUMAN SCORE</div></div>
+      <div class="stat"><div class="stat-val" id="d-halluc">0</div><div class="stat-lbl">HALLUCINATIONS</div></div>
+      <div class="stat"><div class="stat-val" id="d-responses">0</div><div class="stat-lbl">RESPONSES RATED</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">HUMAN RATING DISTRIBUTION</div>
+        <div class="chart-wrap">
+          <canvas id="scoreChart" role="img"
+            aria-label="Bar chart showing human rating distribution 1 to 5 stars">Rating data</canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">ANNOTATION TAG FREQUENCY</div>
+        <div class="chart-wrap">
+          <canvas id="tagChart" role="img"
+            aria-label="Horizontal bar chart showing annotation tag frequency">Tag data</canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">AI-SCORED DIMENSION AVERAGES (out of 10)</div>
+      <div class="metric-row">
+        <span class="metric-label">ACCURACY</span>
+        <div class="metric-bar"><div class="metric-fill" id="acc-bar" style="background:var(--green);width:0%"></div></div>
+        <span class="metric-val" id="acc-val">—</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">RELEVANCE</span>
+        <div class="metric-bar"><div class="metric-fill" id="rel-bar" style="background:var(--blue);width:0%"></div></div>
+        <span class="metric-val" id="rel-val">—</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">COHERENCE</span>
+        <div class="metric-bar"><div class="metric-fill" id="coh-bar" style="background:var(--purple);width:0%"></div></div>
+        <span class="metric-val" id="coh-val">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">MODEL LEADERBOARD</div>
+      <div id="leaderboard">
+        <div class="empty"><p>No data yet — save some evaluations first.</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       TAB 3: HISTORY
+       ============================================================ -->
+  <div id="tab-history" class="tab">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <label style="margin:0;font-size:13px;color:var(--text)">Saved Evaluations</label>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()">EXPORT JSON</button>
+        <button class="btn btn-danger btn-sm" onclick="clearHistory()">CLEAR HISTORY</button>
+      </div>
+    </div>
+    <div id="history-list">
+      <div class="empty"><div class="empty-icon">&#9671;</div><p>No evaluations saved yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 4: API DOCS
+       ============================================================ -->
+  <div id="tab-api" class="tab">
+    <div class="card">
+      <div class="card-title">REST API REFERENCE</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">
+        This platform exposes a localStorage-backed pseudo-API. In production, replace with
+        a real Node.js/FastAPI backend connected to MongoDB or PostgreSQL.
+      </p>
+
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:11px;color:var(--acc);letter-spacing:0.12em;margin-bottom:6px">POST /api/evaluations</div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:1rem;font-size:12px;color:var(--muted);line-height:1.8">
+<pre>{
+  "prompt": "string",
+  "responses": [
+    {
+      "model": "GPT-4o",
+      "text": "string",
+      "stars": 4,
+      "tags": ["accurate", "concise"],
+      "note": "string",
+      "aiScores": {
+        "accuracy": 8,
+        "relevance": 9,
+        "coherence": 7,
+        "avg": 8.0
+      }
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:11px;color:var(--acc);letter-spacing:0.12em;margin-bottom:6px">GET /api/evaluations</div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:1rem;font-size:12px;color:var(--muted);line-height:1.8">
+<pre>Returns: Array of all stored evaluations with metadata.
+Query params: ?model=GPT-4o&minScore=7&limit=20&offset=0</pre>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:11px;color:var(--acc);letter-spacing:0.12em;margin-bottom:6px">GET /api/metrics</div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:1rem;font-size:12px;color:var(--muted);line-height:1.8">
+<pre>Returns: Aggregated metrics — avg scores per model,
+         tag frequencies, dimension averages, leaderboard.</pre>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:11px;color:var(--acc);letter-spacing:0.12em;margin-bottom:6px">DELETE /api/evaluations/:id</div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:1rem;font-size:12px;color:var(--muted);line-height:1.8">
+<pre>Deletes a single evaluation by ID.</pre>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="card-title">EXAMPLE NODE.JS / FASTAPI BACKEND</div>
+      <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:1rem;font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:1rem">
+<pre style="white-space:pre-wrap"># FastAPI (Python)
+from fastapi import FastAPI
+from pydantic import BaseModel
+from motor.motor_asyncio import AsyncIOMotorClient
+from datetime import datetime
+
+app = FastAPI()
+client = AsyncIOMotorClient("mongodb://localhost:27017")
+db = client.llm_evals
+
+class Evaluation(BaseModel):
+    prompt: str
+    responses: list
+
+@app.post("/api/evaluations")
+async def create_evaluation(eval: Evaluation):
+    doc = eval.dict()
+    doc["timestamp"] = datetime.utcnow().isoformat()
+    result = await db.evaluations.insert_one(doc)
+    return {"id": str(result.inserted_id)}
+
+@app.get("/api/evaluations")
+async def get_evaluations(model: str = None, limit: int = 50):
+    query = {}
+    if model:
+        query["responses.model"] = model
+    cursor = db.evaluations.find(query).limit(limit)
+    return await cursor.to_list(limit)</pre>
+      </div>
+
+      <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:1rem;font-size:12px;color:var(--muted);line-height:1.8">
+<pre style="white-space:pre-wrap">// Node.js / Express
+const express = require('express');
+const mongoose = require('mongoose');
+const app = express();
+app.use(express.json());
+
+await mongoose.connect('mongodb://localhost:27017/llm_evals');
+
+const EvalSchema = new mongoose.Schema({
+  prompt: String,
+  responses: Array,
+  timestamp: { type: Date, default: Date.now }
+});
+const Evaluation = mongoose.model('Evaluation', EvalSchema);
+
+app.post('/api/evaluations', async (req, res) => {
+  const ev = new Evaluation(req.body);
+  await ev.save();
+  res.json({ id: ev._id });
+});
+
+app.get('/api/evaluations', async (req, res) => {
+  const evals = await Evaluation.find().limit(50).lean();
+  res.json(evals);
+});
+
+app.listen(3000);</pre>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end container -->
+
+<script>
+/* ============================================================
+   DATA & STATE
+   ============================================================ */
+const TAGS    = ['hallucination','irrelevant','incoherent','biased','accurate','concise'];
+const MODELS  = ['GPT-4o','Claude 3.5 Sonnet','Gemini 1.5 Pro','Llama 3.1 70B',
+                 'Mistral Large','Command R+','DeepSeek V3','Custom'];
+const TAG_COLORS = {
+  hallucination: '#e74c3c', irrelevant: '#f39c12', incoherent: '#9b59b6',
+  biased: '#e67e22', accurate: '#2ecc71', concise: '#3498db'
+};
+
+let responses    = [];
+let evaluations  = [];
+let scoreChart   = null;
+let tagChart     = null;
+let respIdCtr    = 0;
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'dashboard') updateDashboard();
+  if (name === 'history')   renderHistory();
+}
+
+/* ============================================================
+   RESPONSE MANAGEMENT
+   ============================================================ */
+function addResponseUI(model = '', text = '') {
+  respIdCtr++;
+  const r = { id: respIdCtr, model: model || MODELS[0], text, stars: 0, tags: [], note: '', aiScores: null };
+  responses.push(r);
+  renderResponses();
+  return r;
+}
+
+function removeResponse(id) {
+  responses = responses.filter(r => r.id !== id);
+  renderResponses();
+}
+
+function updateField(id, field, val) {
+  const r = responses.find(x => x.id === id);
+  if (r) r[field] = val;
+}
+
+function setStars(id, n) {
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  r.stars = n;
+  document.querySelectorAll(`#stars-${id} .star`).forEach((s, i) =>
+    s.classList.toggle('lit', i < n)
+  );
+}
+
+function toggleTag(id, tag) {
+  const r = responses.find(x => x.id === id);
+  if (!r) return;
+  if (r.tags.includes(tag)) r.tags = r.tags.filter(t => t !== tag);
+  else r.tags.push(tag);
+  const el = document.querySelector(`#rcard-${id} .tag.${tag}`);
+  if (el) el.classList.toggle('on');
+}
+
+/* ============================================================
+   RENDER RESPONSES
+   ============================================================ */
+function renderResponses() {
+  const c = document.getElementById('resp-container');
+  if (responses.length === 0) {
+    c.innerHTML = `<div class="empty">
+      <div class="empty-icon">&#9670;</div>
+      <p>No responses yet.<br>Add at least 2 to compare.</p><br>
+      <button class="btn btn-ghost" onclick="addDemoData()">LOAD DEMO DATA</button>
+    </div>`;
+    return;
+  }
+
+  c.innerHTML = '';
+  responses.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'response-card' + (r.selected ? ' selected' : '');
+    div.id = 'rcard-' + r.id;
+
+    const scoreClass = r.aiScores
+      ? (r.aiScores.avg >= 7 ? 'score-high' : r.aiScores.avg >= 4 ? 'score-mid' : 'score-low')
+      : '';
+    const scoreBadge = r.aiScores
+      ? `<span class="score-badge ${scoreClass}">${r.aiScores.avg.toFixed(1)} / 10</span>`
+      : '';
+
+    const starsHtml = [1,2,3,4,5].map(i =>
+      `<span class="star ${r.stars >= i ? 'lit' : ''}" onclick="setStars(${r.id},${i})">&#9733;</span>`
+    ).join('');
+
+    const tagsHtml = TAGS.map(t =>
+      `<span class="tag ${t} ${r.tags.includes(t) ? 'on' : ''}" onclick="toggleTag(${r.id},'${t}')">${t}</span>`
+    ).join('');
+
+    const aiBlock = r.aiScores ? `
+      <div class="ai-block">
+        <div class="ai-block-title">&#9670; AI EVALUATION SCORES</div>
+        <div class="ai-scores">
+          <div class="ai-score-item">
+            <div class="ai-score-num" style="color:#2ecc71">${r.aiScores.accuracy}</div>
+            <div class="ai-score-dim">ACCURACY</div>
+          </div>
+          <div class="ai-score-item">
+            <div class="ai-score-num" style="color:#3498db">${r.aiScores.relevance}</div>
+            <div class="ai-score-dim">RELEVANCE</div>
+          </div>
+          <div class="ai-score-item">
+            <div class="ai-score-num" style="color:#9b59b6">${r.aiScores.coherence}</div>
+            <div class="ai-score-dim">COHERENCE</div>
+          </div>
+        </div>
+        <div class="ai-reasoning">${r.aiScores.reasoning || ''}</div>
+      </div>` : '';
+
+    div.innerHTML = `
+      ${scoreBadge}
+      <div class="rc-header">
+        <span class="rc-num">RESPONSE #${r.id}</span>
+        <select onchange="updateField(${r.id},'model',this.value)" style="width:200px">
+          ${MODELS.map(m => `<option ${r.model === m ? 'selected' : ''}>${m}</option>`).join('')}
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="removeResponse(${r.id})" style="margin-left:auto">REMOVE</button>
+      </div>
+
+      <label>Response Text</label>
+      <textarea rows="5" placeholder="Paste the model's response here..."
+        onchange="updateField(${r.id},'text',this.value)">${r.text}</textarea>
+
+      <div class="divider"></div>
+
+      <label>Human Rating (1–5 stars)</label>
+      <div class="stars" id="stars-${r.id}">${starsHtml}</div>
+
+      <label style="margin-top:12px">Annotation Tags — click to toggle</label>
+      <div class="tags-row">${tagsHtml}</div>
+
+      <label style="margin-top:10px">Reviewer Notes</label>
+      <textarea rows="2" placeholder="Add your feedback, observations..."
+        onchange="updateField(${r.id},'note',this.value)">${r.note}</textarea>
+
+      ${aiBlock}
+
+      <div class="loading-overlay" id="loading-${r.id}">
+        <span class="spinner"></span> ANALYZING WITH CLAUDE...
+      </div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+/* ============================================================
+   AI AUTO-EVALUATION via Claude API
+   ============================================================ */
+async function runAIEval() {
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) { alert('Please enter a prompt first.'); return; }
+  if (responses.length === 0) { alert('Please add at least one response.'); return; }
+
+  const toScore = responses.filter(r => r.text.trim());
+  if (toScore.length === 0) { alert('Please add response text.'); return; }
+
+  for (const r of toScore) {
+    const overlay = document.getElementById('loading-' + r.id);
+    if (overlay) overlay.classList.add('active');
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `You are a rigorous LLM response evaluator. Score the following response on 3 dimensions from 1-10.
+
+PROMPT: "${prompt}"
+
+RESPONSE: "${r.text}"
+
+Scoring criteria:
+- accuracy (1-10): Is the information factually correct? Are there hallucinations?
+- relevance (1-10): Does it directly address the prompt? Is it on-topic?
+- coherence (1-10): Is it well-structured, logical, and easy to follow?
+
+Return ONLY valid JSON — no markdown fences, no preamble:
+{"accuracy": <number>, "relevance": <number>, "coherence": <number>, "reasoning": "<one concise sentence about the response quality>"}`
+          }]
+        })
+      });
+
+      const data = await res.json();
+      const rawText = (data.content || []).map(x => x.text || '').join('').replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(rawText);
+
+      r.aiScores = {
+        accuracy:  Math.min(10, Math.max(1, Math.round(parsed.accuracy))),
+        relevance: Math.min(10, Math.max(1, Math.round(parsed.relevance))),
+        coherence: Math.min(10, Math.max(1, Math.round(parsed.coherence))),
+        reasoning: parsed.reasoning || ''
+      };
+      r.aiScores.avg = +((r.aiScores.accuracy + r.aiScores.relevance + r.aiScores.coherence) / 3).toFixed(1);
+
+      // Auto-suggest tags based on score
+      if (r.aiScores.accuracy <= 4 && !r.tags.includes('hallucination')) r.tags.push('hallucination');
+      if (r.aiScores.relevance <= 4 && !r.tags.includes('irrelevant'))   r.tags.push('irrelevant');
+      if (r.aiScores.coherence <= 4 && !r.tags.includes('incoherent'))   r.tags.push('incoherent');
+      if (r.aiScores.accuracy >= 8 && !r.tags.includes('accurate'))      r.tags.push('accurate');
+
+    } catch (err) {
+      r.aiScores = {
+        accuracy: 5, relevance: 5, coherence: 5, avg: 5,
+        reasoning: 'Auto-scoring unavailable (API key required in production). Showing placeholder scores.'
+      };
+    }
+
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  renderResponses();
+
+  // Highlight best response
+  const scored = responses.filter(r => r.aiScores);
+  if (scored.length > 0) {
+    const best = scored.reduce((a, b) => (a.aiScores.avg || 0) > (b.aiScores.avg || 0) ? a : b);
+    const bestCard = document.getElementById('rcard-' + best.id);
+    if (bestCard) {
+      bestCard.classList.add('best', 'best-pulse');
+      setTimeout(() => bestCard.classList.remove('best-pulse'), 1000);
+    }
+  }
+}
+
+/* ============================================================
+   SAVE / CLEAR
+   ============================================================ */
+function saveEvaluation() {
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt || responses.length === 0) { alert('Nothing to save.'); return; }
+
+  const ev = {
+    id: Date.now(),
+    prompt,
+    timestamp: new Date().toISOString(),
+    responses: responses.map(r => ({ ...r, aiScores: r.aiScores ? { ...r.aiScores } : null }))
+  };
+  evaluations.push(ev);
+  persistEvals();
+  updateEvalCount();
+  alert(`Evaluation saved! You now have ${evaluations.length} evaluation${evaluations.length > 1 ? 's' : ''}.`);
+}
+
+function clearAll() {
+  if (!confirm('Clear all responses and the current prompt?')) return;
+  responses = [];
+  respIdCtr = 0;
+  document.getElementById('prompt-input').value = '';
+  renderResponses();
+}
+
+function clearHistory() {
+  if (!confirm('Delete ALL saved evaluations? This cannot be undone.')) return;
+  evaluations = [];
+  persistEvals();
+  updateEvalCount();
+  renderHistory();
+}
+
+/* ============================================================
+   PERSISTENCE
+   ============================================================ */
+function persistEvals() {
+  try { localStorage.setItem('llm_eval_data', JSON.stringify(evaluations)); } catch(e) {}
+}
+
+function loadEvals() {
+  try {
+    const s = localStorage.getItem('llm_eval_data');
+    if (s) evaluations = JSON.parse(s);
+  } catch(e) {}
+}
+
+function updateEvalCount() {
+  document.getElementById('eval-count').textContent =
+    `${evaluations.length} evaluation${evaluations.length !== 1 ? 's' : ''} saved`;
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(evaluations, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `llm_evaluations_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+/* ============================================================
+   HISTORY TAB
+   ============================================================ */
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (evaluations.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">&#9671;</div><p>No evaluations saved yet.</p></div>';
+    return;
+  }
+
+  el.innerHTML = evaluations.slice().reverse().map(ev => {
+    const resps = ev.responses;
+    const ratedResps = resps.filter(r => r.stars > 0);
+    const avgStars = ratedResps.length
+      ? (ratedResps.reduce((a, r) => a + r.stars, 0) / ratedResps.length).toFixed(1)
+      : '—';
+    const allTags = [...new Set(resps.flatMap(r => r.tags))].slice(0, 5);
+    const tagPills = allTags.map(t =>
+      `<span class="pill tag ${t}" style="border-color:${TAG_COLORS[t]||'#888'};color:${TAG_COLORS[t]||'#888'}">${t}</span>`
+    ).join('');
+
+    const aiScored = resps.filter(r => r.aiScores);
+    const avgAI = aiScored.length
+      ? (aiScored.reduce((a, r) => a + r.aiScores.avg, 0) / aiScored.length).toFixed(1)
+      : null;
+
+    return `<div class="eval-item">
+      <div>
+        <div class="eval-prompt">PROMPT</div>
+        <div class="eval-text">${ev.prompt.slice(0, 130)}${ev.prompt.length > 130 ? '…' : ''}</div>
+        <div class="eval-meta">
+          <span style="font-size:11px;color:var(--muted)">
+            ${new Date(ev.timestamp).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}
+            &bull; ${resps.length} response${resps.length !== 1 ? 's' : ''}
+            &bull; &#9733; ${avgStars}
+            ${avgAI ? `&bull; AI avg ${avgAI}/10` : ''}
+          </span>
+          ${tagPills}
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadEval(${ev.id})">LOAD &#8599;</button>
+    </div>`;
+  }).join('');
+}
+
+function loadEval(id) {
+  const ev = evaluations.find(e => e.id === id);
+  if (!ev) return;
+  document.getElementById('prompt-input').value = ev.prompt;
+  responses = ev.responses.map(r => ({ ...r }));
+  respIdCtr = Math.max(...responses.map(r => r.id), 0);
+  renderResponses();
+  switchTab('evaluate', document.querySelector('nav button'));
+  document.querySelectorAll('nav button')[0].classList.add('active');
+  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function updateDashboard() {
+  const allResps = evaluations.flatMap(e => e.responses);
+
+  document.getElementById('d-total').textContent     = evaluations.length;
+  document.getElementById('d-responses').textContent = allResps.length;
+  document.getElementById('d-halluc').textContent    = allResps.filter(r => r.tags.includes('hallucination')).length;
+
+  const ratedResps = allResps.filter(r => r.stars > 0);
+  const avgStars = ratedResps.length
+    ? (ratedResps.reduce((a, r) => a + r.stars, 0) / ratedResps.length).toFixed(1)
+    : '—';
+  document.getElementById('d-avg').textContent = avgStars !== '—' ? avgStars + '★' : '—';
+
+  // Dimension bars
+  const aiScored = allResps.filter(r => r.aiScores);
+  if (aiScored.length) {
+    const avg = (arr, key) => (arr.reduce((a, r) => a + r.aiScores[key], 0) / arr.length).toFixed(1);
+    const avgAcc = avg(aiScored, 'accuracy');
+    const avgRel = avg(aiScored, 'relevance');
+    const avgCoh = avg(aiScored, 'coherence');
+    document.getElementById('acc-val').textContent = avgAcc;
+    document.getElementById('rel-val').textContent = avgRel;
+    document.getElementById('coh-val').textContent = avgCoh;
+    document.getElementById('acc-bar').style.width = (avgAcc * 10) + '%';
+    document.getElementById('rel-bar').style.width = (avgRel * 10) + '%';
+    document.getElementById('coh-bar').style.width = (avgCoh * 10) + '%';
+  }
+
+  // Leaderboard
+  const modelStats = {};
+  allResps.forEach(r => {
+    const m = r.model || 'Unknown';
+    if (!modelStats[m]) modelStats[m] = { name: m, scores: [], stars: [], count: 0 };
+    if (r.aiScores) modelStats[m].scores.push(r.aiScores.avg);
+    if (r.stars > 0) modelStats[m].stars.push(r.stars);
+    modelStats[m].count++;
+  });
+
+  const lb = Object.values(modelStats).map(m => ({
+    ...m,
+    avg: m.scores.length ? (m.scores.reduce((a,b)=>a+b,0)/m.scores.length).toFixed(1) : null,
+    avgStars: m.stars.length ? (m.stars.reduce((a,b)=>a+b,0)/m.stars.length).toFixed(1) : null
+  })).sort((a, b) => parseFloat(b.avg || 0) - parseFloat(a.avg || 0));
+
+  const lbEl = document.getElementById('leaderboard');
+  if (lb.length === 0) {
+    lbEl.innerHTML = '<div class="empty"><p>No data yet.</p></div>';
+  } else {
+    lbEl.innerHTML = lb.map((m, i) => {
+      const scoreColor = m.avg
+        ? (parseFloat(m.avg) >= 7 ? '#2ecc71' : parseFloat(m.avg) >= 4 ? '#f39c12' : '#e74c3c')
+        : '#9999b5';
+      return `<div class="lb-row">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-model">${m.name}${i === 0 && m.avg ? '<span class="winner-badge">&#9670; TOP</span>' : ''}</span>
+        <span class="lb-count">${m.count} eval${m.count !== 1 ? 's' : ''}</span>
+        ${m.avgStars ? `<span style="font-size:12px;color:#f39c12">&#9733;${m.avgStars}</span>` : ''}
+        <span class="lb-score" style="color:${scoreColor}">${m.avg ? m.avg + '/10' : '—'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Charts
+  const starCounts = [1,2,3,4,5].map(s => ratedResps.filter(r => r.stars === s).length);
+  const tagCounts  = TAGS.map(t => allResps.filter(r => r.tags.includes(t)).length);
+
+  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+  const sc = document.getElementById('scoreChart').getContext('2d');
+  scoreChart = new Chart(sc, {
+    type: 'bar',
+    data: {
+      labels: ['1 ★', '2 ★', '3 ★', '4 ★', '5 ★'],
+      datasets: [{
+        label: 'Responses',
+        data: starCounts,
+        backgroundColor: ['#e74c3c55','#e67e2255','#f39c1255','#2ecc7155','#27ae6055'],
+        borderColor:     ['#e74c3c',  '#e67e22',  '#f39c12',  '#2ecc71',  '#27ae60'],
+        borderWidth: 1, borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9999b5', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9999b5', font: { size: 11 }, stepSize: 1 } }
+      }
+    }
+  });
+
+  if (tagChart) { tagChart.destroy(); tagChart = null; }
+  const tc = document.getElementById('tagChart').getContext('2d');
+  tagChart = new Chart(tc, {
+    type: 'bar',
+    data: {
+      labels: TAGS,
+      datasets: [{
+        label: 'Count',
+        data: tagCounts,
+        backgroundColor: TAGS.map(t => TAG_COLORS[t] + '44'),
+        borderColor:     TAGS.map(t => TAG_COLORS[t]),
+        borderWidth: 1, borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9999b5', font: { size: 11 }, stepSize: 1 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9999b5', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+/* ============================================================
+   DEMO DATA
+   ============================================================ */
+function addDemoData() {
+  clearAll();
+  document.getElementById('prompt-input').value =
+    'Explain the difference between supervised and unsupervised learning in machine learning, and provide 2 examples of each.';
+
+  addResponseUI('GPT-4o',
+    `Supervised learning uses labeled training data where each input has a corresponding correct output. The model learns a mapping from inputs to outputs and can then predict outputs for unseen inputs.
+
+Examples:
+1. Email spam detection — emails labeled spam/not-spam train a classifier
+2. House price prediction — historical prices with features train a regression model
+
+Unsupervised learning works with unlabeled data, finding hidden patterns and structure without explicit guidance.
+
+Examples:
+1. Customer segmentation — clustering customers by behavior with no predefined groups
+2. Topic modeling — discovering themes across a corpus of documents
+
+The key distinction: supervised learning has a clear target variable; unsupervised does not.`
+  );
+
+  addResponseUI('Claude 3.5 Sonnet',
+    `Great question! Here's a clear breakdown:
+
+**Supervised Learning** — training with labeled examples (input → known output):
+- Image classification (cat vs dog) — thousands of labeled images train a CNN
+- Medical diagnosis — patient symptoms + confirmed diagnoses train a classifier
+
+**Unsupervised Learning** — finding patterns in unlabeled data:
+- Anomaly detection in credit card fraud — no labels; outliers emerge naturally
+- Word embeddings (Word2Vec) — language structure learned from raw text
+
+Beyond these two, there's also semi-supervised (mix of both) and self-supervised learning — how modern LLMs like me are trained! The core difference is whether the learning signal comes from human-provided labels or the data's inherent structure.`
+  );
+
+  addResponseUI('Gemini 1.5 Pro',
+    `Machine learning has different types. Supervised and unsupervised are two main ones.
+
+Supervised learning uses data with labels. The computer learns from examples. Like if you show it many pictures of cats and dogs with labels, it learns to tell them apart. Another example is predicting weather.
+
+Unsupervised learning doesn't use labels. The computer finds patterns itself. Clustering is an example. Also dimensionality reduction.
+
+Both are important in AI and data science. Hope that helps explain the difference!`
+  );
+
+  responses[0].stars = 5;
+  responses[0].tags  = ['accurate', 'concise'];
+  responses[1].stars = 4;
+  responses[1].tags  = ['accurate'];
+  responses[2].stars = 2;
+  responses[2].tags  = ['irrelevant', 'incoherent'];
+
+  renderResponses();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+loadEvals();
+updateEvalCount();
+renderResponses();
+</script>
+</body>
+</html>
